@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>LEDGER EVENT REPORT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --ink:#000000;
+    --paper:#F5F5F6;
+    --paper-raised:#FFFFFF;
+    --line:#E2E2E4;
+    --muted:#6B6B6E;
+    --amber:#FF7900;
+    --amber-ink:#FFFFFF;
+    --teal:#5B2FE0;
+    --danger:#D33A2C;
+    --success:#1E8A5F;
+    --radius:14px;
+    --shadow: 0 1px 2px rgba(0,0,0,0.05), 0 8px 24px -12px rgba(0,0,0,0.20);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  .topbar{
+    background:var(--ink);
+    color:#fff;
+    padding:18px 20px 16px;
+    position:sticky; top:0; z-index:20;
+    box-shadow:0 4px 16px rgba(0,0,0,0.15);
+  }
+  .topbar-inner{
+    max-width:640px; margin:0 auto;
+    display:flex; align-items:center; justify-content:space-between;
+    gap:12px;
+  }
+  .brand{display:flex; align-items:center; gap:10px;}
+  .brand-mark{
+    width:34px; height:34px; border-radius:8px;
+    background:var(--amber);
+    display:flex; align-items:center; justify-content:center;
+    flex:none;
+  }
+  .brand-mark svg{width:19px; height:19px;}
+  .brand-text h1{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:14px; font-weight:700; margin:0; letter-spacing:0.01em;
+    line-height:1.2; white-space:nowrap;
+  }
+  .brand-text span{
+    font-size:11px; color:#C7CDCA; letter-spacing:0.06em; text-transform:uppercase;
+  }
+  .tabs{
+    max-width:640px; margin:12px auto 0; padding:0 20px;
+    display:flex; gap:6px;
+  }
+  .tab-btn{
+    flex:1; padding:9px 10px; border-radius:9px; border:none;
+    background:rgba(255,255,255,0.06); color:#C7CDCA;
+    font-family:'Inter',sans-serif; font-weight:600; font-size:13px;
+    cursor:pointer; transition:all .15s ease;
+  }
+  .tab-btn.active{background:var(--amber); color:var(--amber-ink);}
+
+  .wrap{max-width:640px; margin:0 auto; padding:20px 20px 80px;}
+  .card{
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:20px;
+    margin-bottom:16px;
+  }
+  label{
+    display:block; font-size:12.5px; font-weight:600; color:var(--muted);
+    text-transform:uppercase; letter-spacing:0.04em; margin-bottom:6px;
+  }
+  .field{margin-bottom:16px;}
+  input[type=text], input[type=email], select, textarea{
+    width:100%; border:1.5px solid var(--line); border-radius:10px;
+    padding:11px 12px; font-family:'Inter',sans-serif; font-size:15px;
+    color:var(--ink); background:#FCFDFD;
+  }
+  input:focus, select:focus, textarea:focus{
+    outline:none; border-color:var(--teal); box-shadow:0 0 0 3px rgba(91,47,224,0.15);
+  }
+  textarea{resize:vertical; min-height:78px;}
+  .hint{font-size:12px; color:var(--muted); margin-top:5px;}
+  .req::after{content:" *"; color:var(--danger);}
+
+  .photo-zone{
+    border:1.5px dashed var(--line); border-radius:12px;
+    padding:16px; text-align:center; background:#FAFBFA;
+  }
+  .photo-btn{
+    display:inline-flex; align-items:center; gap:8px;
+    background:var(--ink); color:#fff; border:none;
+    padding:11px 18px; border-radius:10px; font-weight:600; font-size:14px;
+    cursor:pointer; font-family:'Inter',sans-serif;
+  }
+  .photo-btn svg{width:16px; height:16px;}
+  #photoInput{display:none;}
+  .thumbs{display:flex; flex-wrap:wrap; gap:8px; margin-top:14px;}
+  .thumb{position:relative; width:76px; height:76px; border-radius:8px; overflow:hidden; border:1px solid var(--line);}
+  .thumb img{width:100%; height:100%; object-fit:cover; display:block;}
+  .thumb button{
+    position:absolute; top:2px; right:2px; width:20px; height:20px; border-radius:50%;
+    background:rgba(0,0,0,0.75); color:#fff; border:none; font-size:12px; line-height:1;
+    cursor:pointer;
+  }
+
+  .submit-btn{
+    width:100%; background:var(--amber); color:var(--amber-ink); border:none;
+    padding:14px; border-radius:12px; font-family:'Space Grotesk',sans-serif;
+    font-weight:700; font-size:15.5px; cursor:pointer; letter-spacing:0.01em;
+  }
+  .submit-btn:disabled{opacity:0.5; cursor:not-allowed;}
+  .error-box{
+    background:#FBEAE6; border:1px solid #EAC2B8; color:var(--danger);
+    border-radius:10px; padding:10px 12px; font-size:13.5px; margin-bottom:14px; display:none;
+  }
+
+  /* Ticket stub confirmation */
+  .stub{
+    background:var(--ink); color:#fff; border-radius:var(--radius);
+    padding:22px 20px; position:relative; overflow:hidden; margin-bottom:16px;
+    display:none;
+  }
+  .stub.show{display:block;}
+  .stub::before{
+    content:""; position:absolute; left:-8px; top:50%; transform:translateY(-50%);
+    width:16px; height:16px; background:var(--paper); border-radius:50%;
+  }
+  .stub::after{
+    content:""; position:absolute; right:-8px; top:50%; transform:translateY(-50%);
+    width:16px; height:16px; background:var(--paper); border-radius:50%;
+  }
+  .stub-row{display:flex; justify-content:space-between; align-items:flex-start; gap:12px;}
+  .stub-label{font-size:10.5px; text-transform:uppercase; letter-spacing:0.08em; color:#A7B0AD;}
+  .stub-id{font-family:'IBM Plex Mono',monospace; font-size:19px; font-weight:600; margin-top:3px;}
+  .stub-time{font-family:'IBM Plex Mono',monospace; font-size:13px; color:#DDE3E1; margin-top:3px;}
+  .stub-divider{border-top:1px dashed rgba(255,255,255,0.25); margin:16px 0; position:relative;}
+  .stub-steps{display:flex; flex-direction:column; gap:10px;}
+  .stub-step{display:flex; gap:10px; align-items:flex-start; font-size:13.5px; color:#E7EAE9;}
+  .stub-step .num{
+    flex:none; width:20px; height:20px; border-radius:50%; background:var(--amber); color:var(--amber-ink);
+    font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:11.5px;
+    display:flex; align-items:center; justify-content:center; margin-top:1px;
+  }
+  .mail-btn{
+    margin-top:14px; width:100%; background:var(--amber); color:var(--amber-ink); border:none;
+    padding:12px; border-radius:10px; font-weight:700; font-size:14.5px; cursor:pointer;
+    font-family:'Inter',sans-serif;
+  }
+  .new-report-link{
+    display:block; text-align:center; margin-top:12px; color:#C7CDCA; font-size:13px;
+    text-decoration:underline; cursor:pointer; background:none; border:none; width:100%;
+    font-family:'Inter',sans-serif;
+  }
+
+  /* History */
+  .hist-item{
+    border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:10px; background:#FCFDFD;
+  }
+  .hist-top{display:flex; justify-content:space-between; gap:10px; align-items:baseline;}
+  .hist-provider{font-weight:700; font-size:14.5px;}
+  .hist-time{font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--muted); white-space:nowrap;}
+  .hist-meta{font-size:12.5px; color:var(--muted); margin-top:4px;}
+  .hist-details{font-size:13.5px; margin-top:8px; color:var(--ink);}
+  .hist-agent{
+    display:inline-block; margin-top:8px; font-size:11px; color:var(--teal);
+    background:rgba(91,47,224,0.10); padding:2px 8px; border-radius:6px; font-weight:600;
+  }
+  .empty-state{text-align:center; padding:40px 20px; color:var(--muted);}
+  .empty-state svg{width:38px; height:38px; margin-bottom:10px; opacity:0.5;}
+  .refresh-row{display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;}
+  .refresh-row h2{font-family:'Space Grotesk',sans-serif; font-size:15px; margin:0;}
+  .refresh-btn{
+    background:none; border:1px solid var(--line); border-radius:8px; padding:6px 12px;
+    font-size:12.5px; font-weight:600; color:var(--muted); cursor:pointer;
+  }
+
+  .section-title{
+    font-family:'Space Grotesk',sans-serif; font-size:14.5px; font-weight:700;
+    margin:0 0 14px; color:var(--ink);
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="2.4" stroke-linecap="square" stroke-linejoin="miter"><path d="M8 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h3"/><path d="M16 4h3a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-3"/></svg>
+      </div>
+      <div class="brand-text">
+        <h1>LEDGER EVENT REPORT</h1>
+        <span>Workplace · Rapport d'incident</span>
+      </div>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn active" id="tabNew" onclick="switchTab('new')">Nouveau rapport</button>
+    <button class="tab-btn" id="tabHist" onclick="switchTab('history')">Historique</button>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- NEW REPORT TAB -->
+  <div id="viewNew">
+    <div class="stub" id="stub">
+      <div class="stub-row">
+        <div>
+          <div class="stub-label">Rapport N°</div>
+          <div class="stub-id" id="stubId">—</div>
+        </div>
+        <div style="text-align:right">
+          <div class="stub-label">Horodatage</div>
+          <div class="stub-time" id="stubTime">—</div>
+        </div>
+      </div>
+      <div class="stub-divider"></div>
+      <div class="stub-steps" id="stubSteps"></div>
+      <button class="mail-btn" id="openMailBtn" style="display:none;">Ouvrir le brouillon d'email</button>
+      <button class="new-report-link" onclick="resetForm()">+ Nouveau rapport</button>
+    </div>
+
+    <form id="reportForm">
+      <div class="card">
+        <div class="section-title">Détails de l'incident</div>
+
+        <div class="error-box" id="errorBox"></div>
+
+        <div class="field">
+          <label class="req">Nom de l'agent</label>
+          <input type="text" id="agentName" placeholder="Prénom Nom">
+        </div>
+
+        <div class="field">
+          <label class="req">Prestataire concerné</label>
+          <input type="text" id="providerName" placeholder="Nom de l'entreprise ou du prestataire">
+        </div>
+
+        <div class="field">
+          <label class="req">Localisation</label>
+          <select id="locationSelect">
+            <option value="">Sélectionner…</option>
+            <option>Rooftop</option>
+            <option>Cloud 9</option>
+            <option>Olympus</option>
+            <option>Terrasse d'Olympus</option>
+            <option>MVP</option>
+            <option>Patio</option>
+            <option>NeoBistro</option>
+            <option>Barista</option>
+            <option>Games Room</option>
+            <option>Salle de sport</option>
+            <option>Autre</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Précisions sur la localisation / informations complémentaires</label>
+          <textarea id="details" placeholder="Ex : mur derrière la scène, à côté de l'accès régie. Dommage constaté après le démontage du stand."></textarea>
+        </div>
+
+        <div class="field">
+          <label class="req">Photo(s) du dommage</label>
+          <div class="photo-zone">
+            <button type="button" class="photo-btn" onclick="document.getElementById('photoInput').click()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2Z"/><circle cx="12" cy="13" r="4"/></svg>
+              Prendre / choisir une photo
+            </button>
+            <input type="file" id="photoInput" accept="image/*" capture="environment" multiple>
+            <div class="thumbs" id="thumbs"></div>
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" class="submit-btn" id="submitBtn">Envoyer le rapport</button>
+    </form>
+  </div>
+
+  <!-- HISTORY TAB -->
+  <div id="viewHistory" style="display:none;">
+    <div class="refresh-row">
+      <h2>Rapports compilés</h2>
+      <button class="refresh-btn" onclick="loadHistory()">↻ Actualiser</button>
+    </div>
+    <div id="historyList"></div>
+  </div>
+
+</div>
+
+<script>
+const RECIPIENT_EMAIL = 'lydivine.lancelot-ext@ledger.fr';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyzdePtUfGRfHa8B4OpQNbDudtAbZ5JWs_5jTTtDOaDtTTVVw4mrAlmgCDUi7-VQdJR/exec';
+
+let photos = []; // {dataUrl, name}
+
+function switchTab(tab){
+  document.getElementById('tabNew').classList.toggle('active', tab==='new');
+  document.getElementById('tabHist').classList.toggle('active', tab==='history');
+  document.getElementById('viewNew').style.display = tab==='new' ? 'block' : 'none';
+  document.getElementById('viewHistory').style.display = tab==='history' ? 'block' : 'none';
+  if(tab==='history') loadHistory();
+}
+
+// --- Photo handling ---
+document.getElementById('photoInput').addEventListener('change', async (e)=>{
+  const files = Array.from(e.target.files);
+  for(const file of files){
+    const resized = await resizeImage(file, 1400, 0.72);
+    photos.push({dataUrl: resized.dataUrl, width: resized.width, height: resized.height, name: file.name});
+  }
+  renderThumbs();
+  e.target.value = '';
+});
+
+function resizeImage(file, maxDim, quality){
+  return new Promise((resolve)=>{
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = (ev)=>{
+      img.onload = ()=>{
+        let w = img.width, h = img.height;
+        if(w > h && w > maxDim){ h = h*(maxDim/w); w = maxDim; }
+        else if(h > maxDim){ w = w*(maxDim/h); h = maxDim; }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve({dataUrl: canvas.toDataURL('image/jpeg', quality), width: w, height: h});
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderThumbs(){
+  const el = document.getElementById('thumbs');
+  el.innerHTML = '';
+  photos.forEach((p, i)=>{
+    const div = document.createElement('div');
+    div.className = 'thumb';
+    div.innerHTML = `<img src="${p.dataUrl}"><button type="button" onclick="removePhoto(${i})">✕</button>`;
+    el.appendChild(div);
+  });
+}
+function removePhoto(i){ photos.splice(i,1); renderThumbs(); }
+
+// --- Form submit ---
+document.getElementById('reportForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const agent = document.getElementById('agentName').value.trim();
+  const provider = document.getElementById('providerName').value.trim();
+  const location = document.getElementById('locationSelect').value;
+  const details = document.getElementById('details').value.trim();
+  const errorBox = document.getElementById('errorBox');
+
+  const missing = [];
+  if(!agent) missing.push("nom de l'agent");
+  if(!provider) missing.push("prestataire concerné");
+  if(!location) missing.push("localisation");
+  if(photos.length===0) missing.push("au moins une photo");
+
+  if(missing.length){
+    errorBox.style.display = 'block';
+    errorBox.textContent = "Champs manquants : " + missing.join(', ') + '.';
+    return;
+  }
+  errorBox.style.display = 'none';
+
+  const submitBtn = document.getElementById('submitBtn');
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Envoi en cours…';
+
+  const now = new Date();
+  const reportId = 'INC-' + now.getFullYear().toString().slice(2) + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + '-' + Math.floor(Math.random()*900+100);
+  const dateStr = now.toLocaleDateString('fr-FR', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+  const timeStr = now.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+  
+
+  const showStub = (steps, showMailBtn, mailtoHref)=>{
+    document.getElementById('stubId').textContent = reportId;
+    document.getElementById('stubTime').textContent = `${dateStr}, ${timeStr}`;
+    document.getElementById('stubSteps').innerHTML = steps.map((s,i)=>
+      `<div class="stub-step"><div class="num">${i+1}</div><div>${s}</div></div>`
+    ).join('');
+    const mailBtn = document.getElementById('openMailBtn');
+    if(showMailBtn){
+      mailBtn.style.display = 'block';
+      mailBtn.onclick = ()=>{ window.location.href = mailtoHref; };
+    } else {
+      mailBtn.style.display = 'none';
+    }
+    document.getElementById('stub').classList.add('show');
+    document.getElementById('reportForm').style.display = 'none';
+    document.getElementById('stub').scrollIntoView({behavior:'smooth'});
+  };
+
+  // Save to shared history (metadata only, no images, to keep storage light)
+  const saveHistory = async (extra)=>{
+    try{
+      await window.storage.set('reports:'+reportId, JSON.stringify({
+        reportId, agent, provider, location, details,
+        timestamp: now.toISOString(), photoCount: photos.length, ...extra
+      }), true);
+    }catch(err){ console.error('Erreur sauvegarde historique', err); }
+  };
+
+  try{
+    if(!APPS_SCRIPT_URL){
+      throw new Error('NO_SCRIPT_URL');
+    }
+    // Attempt fully automatic send via Google Apps Script (server builds the PDF and emails it)
+    await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors', // Apps Script doesn't return CORS headers; request still executes server-side
+      headers: {'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({
+        reportId, agent, provider, location, details, recipient: RECIPIENT_EMAIL,
+        timestamp: now.toISOString(),
+        photos: photos.map(p=>({dataUrl:p.dataUrl, name:p.name, width:p.width, height:p.height}))
+      })
+    });
+
+    await saveHistory({ mode: 'auto' });
+    showStub([
+      `Le rapport a été envoyé automatiquement à <strong>${RECIPIENT_EMAIL}</strong>, avec le PDF et les photos en pièce jointe.`,
+      `Vous n'avez rien d'autre à faire.`
+    ], false, null);
+
+  }catch(err){
+    // Fallback: automatic send unavailable (URL not configured, or network/script error) → manual PDF + email draft
+    console.error('Envoi automatique indisponible, bascule en mode manuel :', err);
+    try{
+      const filename = await generatePDF({reportId, dateStr, timeStr, agent, provider, location, details, photos});
+      await saveHistory({ mode: 'manual', filename });
+
+      const subject = `Rapport d'incident ${reportId} — ${provider}`;
+      const bodyLines = [
+        `Rapport d'incident généré automatiquement.`,
+        ``,
+        `N° de rapport : ${reportId}`,
+        `Date : ${dateStr} à ${timeStr}`,
+        `Agent : ${agent}`,
+        `Prestataire concerné : ${provider}`,
+        `Localisation : ${location}`,
+        details ? `Précisions : ${details}` : null,
+        `Nombre de photos : ${photos.length}`,
+        ``,
+        `⚠️ Pensez à joindre le fichier ${filename} téléchargé sur cet appareil avant l'envoi.`
+      ].filter(Boolean);
+      const mailto = `mailto:${encodeURIComponent(RECIPIENT_EMAIL)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyLines.join('\n'))}`;
+
+      showStub([
+        `Envoi automatique indisponible (connexion ou réglages) : le PDF <strong>${filename}</strong> a été téléchargé sur cet appareil en secours.`,
+        `Cliquez ci-dessous pour ouvrir le brouillon d'email pré-rempli.`,
+        `Joignez le PDF téléchargé au brouillon, puis envoyez.`
+      ], true, mailto);
+    }catch(err2){
+      console.error(err2);
+      errorBox.style.display = 'block';
+      errorBox.textContent = "Une erreur est survenue lors de l'envoi et de la génération du PDF de secours. Réessayez, ou vérifiez votre connexion.";
+    }
+  }finally{
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Envoyer le rapport';
+  }
+});
+
+async function generatePDF({reportId, dateStr, timeStr, agent, provider, location, details, photos}){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({unit:'mm', format:'a4'});
+  const pageW = 210, margin = 16;
+  let y = 20;
+
+  doc.setFillColor(0,0,0);
+  doc.rect(0,0,pageW,26,'F');
+  doc.setFillColor(255,121,0);
+  doc.rect(0,26,pageW,1.4,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(15);
+  doc.text("Rapport d'incident", margin, 15);
+  doc.setFontSize(9);
+  doc.setFont('helvetica','normal');
+  doc.text('Salles événementielles — prestataires', margin, 21);
+  doc.setFontSize(9);
+  doc.text(reportId, pageW-margin, 15, {align:'right'});
+  doc.text(`${dateStr}, ${timeStr}`, pageW-margin, 21, {align:'right'});
+
+  y = 38;
+  doc.setTextColor(0,0,0);
+
+  const field = (label, value)=>{
+    doc.setFont('helvetica','bold'); doc.setFontSize(9);
+    doc.setTextColor(90,100,97);
+    doc.text(label.toUpperCase(), margin, y);
+    y += 5.5;
+    doc.setFont('helvetica','normal'); doc.setFontSize(11.5);
+    doc.setTextColor(0,0,0);
+    const lines = doc.splitTextToSize(value || '—', pageW - margin*2);
+    doc.text(lines, margin, y);
+    y += lines.length*5.5 + 6;
+  };
+
+  field('Agent ayant constaté l\'incident', agent);
+  field('Prestataire concerné', provider);
+  field('Localisation', location);
+  field('Précisions / informations complémentaires', details || 'Aucune précision complémentaire.');
+
+  doc.setDrawColor(216,221,219);
+  doc.line(margin, y-2, pageW-margin, y-2);
+  y += 6;
+
+  doc.setFont('helvetica','bold'); doc.setFontSize(9);
+  doc.setTextColor(90,100,97);
+  doc.text(`PHOTOS (${photos.length})`, margin, y);
+  y += 6;
+
+  const imgW = (pageW - margin*2 - 6)/2;
+  let col = 0;
+  for(const p of photos){
+    const props = doc.getImageProperties(p.dataUrl);
+    const imgH = imgW * (props.height/props.width);
+    if(y + imgH > 280){ doc.addPage(); y = 20; col = 0; }
+    const x = margin + col*(imgW+6);
+    doc.addImage(p.dataUrl, 'JPEG', x, y, imgW, imgH);
+    if(col===1){ y += imgH + 6; col = 0; } else { col = 1; }
+  }
+
+  const pageCount = doc.internal.getNumberOfPages();
+  for(let i=1;i<=pageCount;i++){
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(150,155,153);
+    doc.text(`${reportId} — page ${i}/${pageCount}`, margin, 291);
+  }
+
+  const filename = `${reportId}.pdf`;
+  doc.save(filename);
+  return filename;
+}
+
+function resetForm(){
+  document.getElementById('reportForm').reset();
+  photos = [];
+  renderThumbs();
+  document.getElementById('stub').classList.remove('show');
+  document.getElementById('reportForm').style.display = 'block';
+}
+
+// --- History ---
+async function loadHistory(){
+  const el = document.getElementById('historyList');
+  el.innerHTML = '<div class="empty-state">Chargement…</div>';
+  try{
+    const list = await window.storage.list('reports:', true);
+    if(!list || !list.keys || list.keys.length===0){
+      el.innerHTML = `<div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/></svg>
+        <div>Aucun rapport pour le moment.</div>
+      </div>`;
+      return;
+    }
+    const entries = [];
+    for(const k of list.keys){
+      try{
+        const r = await window.storage.get(k, true);
+        if(r && r.value) entries.push(JSON.parse(r.value));
+      }catch(e){}
+    }
+    entries.sort((a,b)=> new Date(b.timestamp) - new Date(a.timestamp));
+    el.innerHTML = entries.map(r=>{
+      const d = new Date(r.timestamp);
+      const dateStr = d.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit', year:'numeric'});
+      const timeStr = d.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+      return `<div class="hist-item">
+        <div class="hist-top">
+          <div class="hist-provider">${escapeHtml(r.provider)}</div>
+          <div class="hist-time">${dateStr} ${timeStr}</div>
+        </div>
+        <div class="hist-meta">${escapeHtml(r.location)} · ${r.photoCount} photo(s) · N° ${r.reportId}</div>
+        ${r.details ? `<div class="hist-details">${escapeHtml(r.details)}</div>` : ''}
+        <div class="hist-agent">Agent : ${escapeHtml(r.agent)}</div>
+      </div>`;
+    }).join('');
+  }catch(e){
+    el.innerHTML = '<div class="empty-state">Impossible de charger l\'historique.</div>';
+  }
+}
+
+function escapeHtml(s){
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+</script>
+</body>
+</html>
